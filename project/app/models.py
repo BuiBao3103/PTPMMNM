@@ -12,8 +12,6 @@ class Author(models.Model):
     # Meta class để định nghĩa metadata cho model
     class Meta:
         ordering = ['name']  # Sắp xếp theo tên mặc định
-        verbose_name = 'Author'
-        verbose_name_plural = 'Authors'
 
     # Phương thức để trả về tên tác giả dưới dạng chuỗi
     def __str__(self):

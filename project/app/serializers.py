@@ -1,3 +1,6 @@
+from rest_framework import serializers
+from .models import Author, Book
+from django.utils import timezone
 class AuthorSerializer(serializers.ModelSerializer):
     # Thêm trường books để hiển thị danh sách sách của tác giả
     books = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
