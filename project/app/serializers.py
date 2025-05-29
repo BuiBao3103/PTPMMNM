@@ -1,32 +1,44 @@
+# serializers.py
 from rest_framework import serializers
-from .models import Author, Book
-from django.utils import timezone
-class AuthorSerializer(serializers.ModelSerializer):
-    # Thêm trường books để hiển thị danh sách sách của tác giả
-    books = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+from .models import Category, Author, Book
 
+# Serializer cho Author: Chuyển đổi dữ liệu Author thành JSON (thuộc yêu cầu: Viết serializer)
+class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ['id', 'name', 'birth_date', 'biography', 'books']  # Các trường sẽ được serialize
+        # Các trường sẽ được serialize để trả về hoặc nhận từ API
+        fields = ['id', 'name', 'birth_date', 'nationality']
 
-    # Validation tùy chỉnh cho name
-    def validate_name(self, value):
-        if len(value) < 2:
-            raise serializers.ValidationError("Tên tác giả phải có ít nhất 2 ký tự.")
-        return value
+# Serializer cho Category: Chuyển đổi dữ liệu Category thành JSON (thuộc yêu cầu: Viết serializer)
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        # Các trường sẽ được serialize
+        fields = ['id', 'name', 'description']
 
-# Serializer cho Book
+# Serializer cho Book: Chuyển đổi dữ liệu Book, xử lý mối quan hệ và validation (thuộc yêu cầu: Viết serializer)
 class BookSerializer(serializers.ModelSerializer):
-    # Sử dụng StringRelatedField để hiển thị tên tác giả thay vì ID
-    author = serializers.StringRelatedField(read_only=True)
-    author_id = serializers.PrimaryKeyRelatedField(queryset=Author.objects.all(), source='author')
+    # Nested serializer: Hiển thị thông tin chi tiết của category (read-only)
+    category = CategorySerializer(read_only=True)
+    # Nhận category_id để tạo/cập nhật sách (write-only)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), source='category', write_only=True
+    )
+    # Nested serializer: Hiển thị thông tin chi tiết của authors (read-only)
+    authors = AuthorSerializer(many=True, read_only=True)
+    # Nhận danh sách author_ids để tạo/cập nhật sách (write-only)
+    author_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Author.objects.all(), many=True, source='authors', write_only=True
+    )
 
     class Meta:
         model = Book
-        fields = ['id', 'title', 'author', 'author_id', 'publication_date', 'price', 'isbn']
+        # Các trường sẽ được serialize, bao gồm cả trường read-only và write-only
+        fields = ['id', 'title', 'category', 'category_id', 'authors', 'author_ids',
+                 'published_date', 'price', 'stock']
 
-    # Validation cho publication_date
-    def validate_publication_date(self, value):
-        if value > timezone.now().date():
-            raise serializers.ValidationError("Ngày xuất bản không được ở tương lai.")
+    # Validation tùy chỉnh: Đảm bảo giá sách phải lớn hơn 0
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Giá phải lớn hơn 0")
         return value
